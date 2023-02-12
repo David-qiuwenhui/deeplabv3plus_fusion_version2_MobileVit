@@ -12,6 +12,9 @@ from torch import Tensor
 import torch.nn as nn
 from torch.nn import functional as F
 
+from nets.mobilevit_block import MobileViTBlock
+
+
 # BatchNorm2d 标准化层的超参数
 BN_MOMENTUM = 0.01
 EPS = 0.001
@@ -147,8 +150,9 @@ class RepVGGplusBlock(nn.Module):
         assert kernel_size == 3
         assert padding == 1
 
-        self.nonlinearity = nn.ReLU()
-        # self.nonlinearity = nn.ReLU6()
+        # TODO: 更改成ReLU6
+        self.nonlinearity = nn.ReLU6()
+        # self.nonlinearity = nn.ReLU()
 
         # 引入通道注意力机制
         # RepVGGPlus的SE通道注意力模块在非线性激活模块后使用
@@ -547,30 +551,7 @@ class StageModule(nn.Module):
         self.branches = nn.ModuleList()
         for i in range(self.input_branches):  # 每个分支上都先通过4个BasicBlock
             w = c * (2**i)  # 对应第i个分支的通道数
-            # TODO: 修改每个Stage中的block数量
             branch = nn.Sequential(
-                # BasicBlockNew(
-                #     in_planes=w,
-                #     expanded_planes=w * expanded_rate,
-                #     out_planes=w,
-                #     kernel=3,
-                #     stride=1,
-                #     use_hs=baseblock_use_hs,
-                #     use_se=baseblock_use_se,
-                #     deploy=deploy,
-                #     repvgg_use_se=repvgg_use_se,
-                # ),
-                # BasicBlockNew(
-                #     in_planes=w,
-                #     expanded_planes=w * expanded_rate,
-                #     out_planes=w,
-                #     kernel=3,
-                #     stride=1,
-                #     use_hs=baseblock_use_hs,
-                #     use_se=baseblock_use_se,
-                #     deploy=deploy,
-                #     repvgg_use_se=repvgg_use_se,
-                # ),
                 BasicBlockNew(
                     in_planes=w,
                     expanded_planes=w * expanded_rate,
@@ -582,17 +563,30 @@ class StageModule(nn.Module):
                     deploy=deploy,
                     repvgg_use_se=repvgg_use_se,
                 ),
-                BasicBlockNew(
-                    in_planes=w,
-                    expanded_planes=w * expanded_rate,
-                    out_planes=w,
-                    kernel=3,
-                    stride=1,
-                    use_hs=baseblock_use_hs,
-                    use_se=baseblock_use_se,
-                    deploy=deploy,
-                    repvgg_use_se=repvgg_use_se,
+                MobileViTBlock(
+                    in_channels=w,
+                    transformer_dim=w,
+                    ffn_dim=w * 2,
+                    n_transformer_blocks=1,
+                    head_dim=w // 4,
+                    attn_dropout=0.0,
+                    dropout=0.1,
+                    ffn_dropout=0.0,
+                    patch_h=2,
+                    patch_w=2,
+                    conv_ksize=3,
                 ),
+                # BasicBlockNew(
+                #     in_planes=w,
+                #     expanded_planes=w * expanded_rate,
+                #     out_planes=w,
+                #     kernel=3,
+                #     stride=1,
+                #     use_hs=baseblock_use_hs,
+                #     use_se=baseblock_use_se,
+                #     deploy=deploy,
+                #     repvgg_use_se=repvgg_use_se,
+                # ),
             )
             self.branches.append(branch)
 
@@ -736,6 +730,21 @@ class DeepLabV3PlusFusion(nn.Module):
                     repvgg_use_se=repvgg_use_se,
                 )
             )
+        stage1.append(
+            MobileViTBlock(
+                in_channels=32,
+                transformer_dim=32,
+                ffn_dim=64,
+                n_transformer_blocks=1,
+                head_dim=8,
+                attn_dropout=0.0,
+                dropout=0.1,
+                ffn_dropout=0.0,
+                patch_h=2,
+                patch_w=2,
+                conv_ksize=3,
+            ),
+        )
         self.stage1 = nn.Sequential(*stage1)
 
         # ******************** Transition1 ********************
@@ -743,7 +752,7 @@ class DeepLabV3PlusFusion(nn.Module):
             [
                 nn.Sequential(
                     nn.Conv2d(
-                        in_channels=stage1_setting[-1].out_planes,
+                        in_channels=base_channel,
                         out_channels=base_channel,
                         kernel_size=3,
                         stride=1,
@@ -755,7 +764,7 @@ class DeepLabV3PlusFusion(nn.Module):
                 ),
                 nn.Sequential(
                     nn.Conv2d(
-                        in_channels=stage1_setting[-1].out_planes,
+                        in_channels=base_channel,
                         out_channels=base_channel * 2,
                         kernel_size=3,
                         stride=2,
@@ -840,6 +849,7 @@ class DeepLabV3PlusFusion(nn.Module):
         x = self.conv1(x)
         conv1_features = x  # Conv1层的特征图
         x = self.conv2(x)
+        conv2_features = x
 
         # ******************** Stage1 ********************
         x = self.stage1(x)
@@ -882,12 +892,14 @@ class DeepLabV3PlusFusion(nn.Module):
         stage4_features = x[0]  # Stage4层的特征图
 
         Outputs = namedtuple(
-            "outputs", ["main", "conv1", "stage1", "stage2", "stage3", "stage4"]
+            "outputs",
+            ["main", "conv1", "conv2", "stage1", "stage2", "stage3", "stage4"],
         )
 
         return Outputs(
             main=x[0],
             conv1=conv1_features,
+            conv2=conv2_features,
             stage1=stage1_features,
             stage2=stage2_features,
             stage3=stage3_features,
@@ -917,11 +929,10 @@ def deeplabv3plus_fusion_backbone():
     # 定义Stage1模块倒残差模块的参数 InvertedResidualConfig
     # in_planes, expanded_planes, out_planes, kernel, stride, activation, use_se, width_multi
     # TODO: 修改Stage中的BottleNeck数量
+    # 模型version2修改stage1的expanded_rate为3
     stage1_setting = [
-        # bneck_conf(32, 128, 32, 3, 1, "RE", False),
-        # bneck_conf(32, 128, 32, 3, 1, "RE", False),
-        bneck_conf(32, 128, 32, 3, 1, "RE", False),
-        bneck_conf(32, 128, 32, 3, 1, "RE", False),
+        bneck_conf(32, 96, 32, 3, 2, "RE", False),
+        bneck_conf(32, 96, 32, 3, 1, "RE", False),
     ]
     inverted_residual_setting = dict(stage1=stage1_setting)
 

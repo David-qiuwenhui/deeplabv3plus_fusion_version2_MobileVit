@@ -21,7 +21,7 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 model_cfg = dict(
     description="pytorch deeplabv3plus fusion training",
     # ---------- 数据集超参数 -----------
-    data_path="../../dataset/SUIMdevkit",  # dataset root
+    data_path="../../dataset/SUIMdevkit_mini",  # dataset root
     # ---------- 卷积模型超参数 ----------
     backbone="deeplabv3plus_fusion",
     num_classes=7,
@@ -41,7 +41,7 @@ model_cfg = dict(
     model_path="",
     init_epoch=0,
     freeze_epochs=0,
-    unfreeze_epochs=500,
+    unfreeze_epochs=10,
     # ---------- 训练的优化器超参数 ----------
     optimizer="adam",  # sgd, adam
     momentum=0.9,

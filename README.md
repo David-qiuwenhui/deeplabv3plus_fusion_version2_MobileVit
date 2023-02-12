@@ -39,3 +39,5 @@ eps=1e-8
 betas=(0.9, 0.999)
 
 
+## 模型version更新的地方
+（1）stage1的expanded_rate更改为3
