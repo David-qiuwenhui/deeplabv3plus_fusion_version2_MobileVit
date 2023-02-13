@@ -27,7 +27,7 @@ model_cfg = dict(
     num_classes=7,
     input_shape=[512, 512],  # the size of input image
     # TODO: ASPP下采样倍率发生变化
-    downsample_factor=8,  # 主分支在ASPP前的下采样倍率
+    downsample_factor=4,  # 主分支在ASPP前的下采样倍率
     aux_branch=True,  # auxilier loss 辅助分类器
     # ---------- 硬件的超参数 ----------
     cuda=True,
@@ -42,7 +42,7 @@ model_cfg = dict(
     model_path="",
     init_epoch=0,
     freeze_epochs=0,
-    unfreeze_epochs=5,
+    unfreeze_epochs=500,
     # ---------- 训练的优化器超参数 ----------
     optimizer="adam",  # sgd, adam
     momentum=0.9,
