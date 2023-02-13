@@ -570,7 +570,7 @@ class StageModule(nn.Module):
                     in_channels=w,
                     transformer_dim=w,
                     ffn_dim=w * 2,
-                    n_transformer_blocks=2,
+                    n_transformer_blocks=1,
                     head_dim=w // 4,
                     attn_dropout=0.0,
                     dropout=0.1,
@@ -728,7 +728,7 @@ class DeepLabV3PlusFusion(nn.Module):
                 in_channels=32,
                 transformer_dim=32,
                 ffn_dim=64,
-                n_transformer_blocks=2,
+                n_transformer_blocks=1,
                 head_dim=8,
                 attn_dropout=0.0,
                 dropout=0.1,
@@ -922,7 +922,7 @@ def deeplabv3plus_fusion_backbone():
     # 定义Stage1模块倒残差模块的参数 InvertedResidualConfig
     # in_planes, expanded_planes, out_planes, kernel, stride, activation, use_se, width_multi
     stage1_setting = [
-        bneck_conf(32, 128, 32, 3, 1, "RE", False),
+        bneck_conf(32, 96, 32, 3, 1, "RE", False),
         # bneck_conf(32, 128, 32, 3, 1, "RE", False),
     ]
     inverted_residual_setting = dict(stage1=stage1_setting)
