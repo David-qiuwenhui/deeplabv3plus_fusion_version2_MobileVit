@@ -551,6 +551,9 @@ class StageModule(nn.Module):
         self.branches = nn.ModuleList()
         for i in range(self.input_branches):  # 每个分支上都先通过4个BasicBlock
             w = c * (2**i)  # 对应第i个分支的通道数
+            # TODO: 修改了stage1到stage4的patch_w和patch_h
+            patch_size_list = [8, 4, 2, 1]
+            patch_size = patch_size_list[i]
             branch = nn.Sequential(
                 BasicBlockNew(
                     in_planes=w,
@@ -572,8 +575,8 @@ class StageModule(nn.Module):
                     attn_dropout=0.0,
                     dropout=0.1,
                     ffn_dropout=0.0,
-                    patch_h=2,
-                    patch_w=2,
+                    patch_h=patch_size,
+                    patch_w=patch_size,
                     conv_ksize=3,
                 ),
                 # BasicBlockNew(
@@ -731,6 +734,7 @@ class DeepLabV3PlusFusion(nn.Module):
                 )
             )
         stage1.append(
+            # TODO: 修改了stage1的patch_w和patch_h
             MobileViTBlock(
                 in_channels=32,
                 transformer_dim=32,
@@ -740,8 +744,8 @@ class DeepLabV3PlusFusion(nn.Module):
                 attn_dropout=0.0,
                 dropout=0.1,
                 ffn_dropout=0.0,
-                patch_h=2,
-                patch_w=2,
+                patch_h=8,
+                patch_w=8,
                 conv_ksize=3,
             ),
         )

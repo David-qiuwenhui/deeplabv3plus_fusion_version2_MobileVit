@@ -34,7 +34,7 @@ val_cfg = dict(
         "sea_floor_and_rocks",
     ],
     input_shape=[512, 512],
-    downsample_factor=4,
+    downsample_factor=8,
     deploy=True,
     cuda=True,
     # ---------- 文件夹的位置参数 ----------

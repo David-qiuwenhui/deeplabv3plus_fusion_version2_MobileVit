@@ -14,7 +14,7 @@ model_cfg = dict(
     num_classes=7,
     # deeplabv3plus_fusion
     backbone="deeplabv3plus_fusion",
-    downsample_factor=4,
+    downsample_factor=8,
     aux_branch=False,
     deploy=True,
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
