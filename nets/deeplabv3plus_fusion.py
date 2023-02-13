@@ -151,8 +151,8 @@ class RepVGGplusBlock(nn.Module):
         assert padding == 1
 
         # TODO: 更改成ReLU6
-        self.nonlinearity = nn.ReLU6()
-        # self.nonlinearity = nn.ReLU()
+        self.nonlinearity = nn.ReLU()
+        # self.nonlinearity = nn.ReLU6()
 
         # 引入通道注意力机制
         # RepVGGPlus的SE通道注意力模块在非线性激活模块后使用
@@ -552,7 +552,7 @@ class StageModule(nn.Module):
         for i in range(self.input_branches):  # 每个分支上都先通过4个BasicBlock
             w = c * (2**i)  # 对应第i个分支的通道数
             # TODO: 修改了stage1到stage4的patch_w和patch_h
-            patch_size_list = [8, 4, 2, 1]
+            patch_size_list = [16, 8, 4, 2]
             patch_size = patch_size_list[i]
             branch = nn.Sequential(
                 BasicBlockNew(
@@ -570,7 +570,7 @@ class StageModule(nn.Module):
                     in_channels=w,
                     transformer_dim=w,
                     ffn_dim=w * 2,
-                    n_transformer_blocks=1,
+                    n_transformer_blocks=2,
                     head_dim=w // 4,
                     attn_dropout=0.0,
                     dropout=0.1,
@@ -579,17 +579,6 @@ class StageModule(nn.Module):
                     patch_w=patch_size,
                     conv_ksize=3,
                 ),
-                # BasicBlockNew(
-                #     in_planes=w,
-                #     expanded_planes=w * expanded_rate,
-                #     out_planes=w,
-                #     kernel=3,
-                #     stride=1,
-                #     use_hs=baseblock_use_hs,
-                #     use_se=baseblock_use_se,
-                #     deploy=deploy,
-                #     repvgg_use_se=repvgg_use_se,
-                # ),
             )
             self.branches.append(branch)
 
@@ -739,13 +728,13 @@ class DeepLabV3PlusFusion(nn.Module):
                 in_channels=32,
                 transformer_dim=32,
                 ffn_dim=64,
-                n_transformer_blocks=1,
+                n_transformer_blocks=2,
                 head_dim=8,
                 attn_dropout=0.0,
                 dropout=0.1,
                 ffn_dropout=0.0,
-                patch_h=8,
-                patch_w=8,
+                patch_h=16,
+                patch_w=16,
                 conv_ksize=3,
             ),
         )
@@ -932,11 +921,9 @@ def deeplabv3plus_fusion_backbone():
     bneck_conf = partial(InvertedResidualConfig, width_multi=model_cfg["width_multi"])
     # 定义Stage1模块倒残差模块的参数 InvertedResidualConfig
     # in_planes, expanded_planes, out_planes, kernel, stride, activation, use_se, width_multi
-    # TODO: 修改Stage中的BottleNeck数量
-    # 模型version2修改stage1的expanded_rate为3
     stage1_setting = [
-        bneck_conf(32, 96, 32, 3, 2, "RE", False),
-        bneck_conf(32, 96, 32, 3, 1, "RE", False),
+        bneck_conf(32, 128, 32, 3, 1, "RE", False),
+        # bneck_conf(32, 128, 32, 3, 1, "RE", False),
     ]
     inverted_residual_setting = dict(stage1=stage1_setting)
 

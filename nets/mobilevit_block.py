@@ -448,4 +448,3 @@ class MobileViTBlock(nn.Module):
 
         fm = self.fusion(torch.cat((res, fm), dim=1))
         return fm
-

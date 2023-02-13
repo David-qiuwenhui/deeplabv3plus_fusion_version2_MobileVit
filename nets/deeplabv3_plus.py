@@ -204,7 +204,7 @@ class DeepLab(nn.Module):
             # low_level_channels = 32
             # 浅层特征的通道数量
             conv1_channels = 16
-            conv2_channels = 32
+            # conv2_channels = 32
             stage1_channels = 32
             stage2_channels = 32
             stage3_channels = 32
@@ -235,12 +235,12 @@ class DeepLab(nn.Module):
             stride=1,
         )
 
-        self.conv2_shortcut = ConvBNActivation(
-            in_planes=conv2_channels,
-            out_planes=conv2_channels,
-            kernel_size=1,
-            stride=1,
-        )
+        # self.conv2_shortcut = ConvBNActivation(
+        #     in_planes=conv2_channels,
+        #     out_planes=conv2_channels,
+        #     kernel_size=1,
+        #     stride=1,
+        # )
 
         self.stage1_shortcut = ConvBNActivation(
             in_planes=stage1_channels,
@@ -291,14 +291,14 @@ class DeepLab(nn.Module):
         # ----------------------------------#
         #   第二阶段的深浅层次特征图卷积处理模块
         # ----------------------------------#
-        self.cat_conv2 = nn.Sequential(
-            ConvBNActivation(
-                in_planes=256 + conv2_channels,
-                out_planes=256,
-                kernel_size=3,
-            ),
-            nn.Dropout2d(0.1),
-        )
+        # self.cat_conv2 = nn.Sequential(
+        #     ConvBNActivation(
+        #         in_planes=256 + conv2_channels,
+        #         out_planes=256,
+        #         kernel_size=3,
+        #     ),
+        #     nn.Dropout2d(0.1),
+        # )
 
         self.cat_conv3 = nn.Sequential(
             ConvBNActivation(
@@ -363,7 +363,7 @@ class DeepLab(nn.Module):
         # -----------------------------------------#
         #   膨胀卷积池化金字塔模块
         # -----------------------------------------#
-        x = self.aspp(x)  # x(B,256,H/8,W/8)
+        x = self.aspp(x)  # x(B,256,H/4,W/4)
 
         # -----------------------------------------#
         #   辅助分支的特征上采样至原图大小
@@ -391,12 +391,12 @@ class DeepLab(nn.Module):
         # -----------------------------------------#
         #   浅中层特征图的传递和卷积处理
         # -----------------------------------------#
-        conv1_features = self.conv1_shortcut(conv1_features)
-        conv2_features = self.conv2_shortcut(conv2_features)
-        stage1_features = self.stage1_shortcut(stage1_features)
-        stage2_features = self.stage2_shortcut(stage2_features)
-        stage3_features = self.stage3_shortcut(stage3_features)
-        stage4_features = self.stage4_shortcut(stage4_features)
+        conv1_features = self.conv1_shortcut(conv1_features)  # (B,16,H/2,W/2)
+        # conv2_features = self.conv2_shortcut(conv2_features)  # (B,32,H/4,W/4)
+        stage1_features = self.stage1_shortcut(stage1_features)  # (B,32,H/4,W/4)
+        stage2_features = self.stage2_shortcut(stage2_features)  # (B,32,H/4,W/4)
+        stage3_features = self.stage3_shortcut(stage3_features)  # (B,32,H/4,W/4)
+        stage4_features = self.stage4_shortcut(stage4_features)  # (B,32,H/4,W/4)
 
         # -----------------------------------------#
         #   第一阶段的深浅层特征融合
@@ -412,19 +412,6 @@ class DeepLab(nn.Module):
 
         # -----------------------------------------#
         #   第二阶段的深浅层特征融合
-        #   将主分支的特征进行上采样
-        #   主分支的特征与浅层特征拼接后再利用卷积进行特征融合
-        # -----------------------------------------#
-        x = F.interpolate(
-            input=x,
-            size=(conv2_features.size(2), conv2_features.size(3)),
-            mode="bilinear",
-            align_corners=True,
-        )
-        x = self.cat_conv2(torch.cat((x, conv2_features), dim=1))
-
-        # -----------------------------------------#
-        #   第三阶段的深浅层特征融合
         #   将主分支的特征进行上采样
         #   主分支的特征与浅层特征拼接后再利用卷积进行特征融合
         # -----------------------------------------#

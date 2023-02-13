@@ -42,7 +42,7 @@ model_cfg = dict(
     model_path="",
     init_epoch=0,
     freeze_epochs=0,
-    unfreeze_epochs=500,
+    unfreeze_epochs=5,
     # ---------- 训练的优化器超参数 ----------
     optimizer="adam",  # sgd, adam
     momentum=0.9,

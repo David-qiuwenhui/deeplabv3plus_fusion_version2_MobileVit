@@ -12,7 +12,6 @@ from nets.deeplabv3_plus import DeepLab
 model_cfg = dict(
     input_shape=[512, 512],
     num_classes=7,
-    # deeplabv3plus_fusion
     backbone="deeplabv3plus_fusion",
     downsample_factor=8,
     aux_branch=False,
