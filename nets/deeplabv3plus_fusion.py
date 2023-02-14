@@ -150,7 +150,6 @@ class RepVGGplusBlock(nn.Module):
         assert kernel_size == 3
         assert padding == 1
 
-        # TODO: 更改成ReLU6
         self.nonlinearity = nn.ReLU()
         # self.nonlinearity = nn.ReLU6()
 
